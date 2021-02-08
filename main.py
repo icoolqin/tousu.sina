@@ -9,7 +9,11 @@ from wordcloud import WordCloud
 import PIL.Image as image
 import numpy as np
 from pylab import *
-mpl.rcParams['font.sans-serif'] = ['Arial Unicode MS']
+import csv
+
+# plt.rcParams['font.sans-serif'] = ['Arial Unicode MS'] #Mac上用的字体
+plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
 def get_data(i,keyword):
     url = 'https://tousu.sina.com.cn/api/index/s?&keywords='+keyword+'&page_size=10&page='+i
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18363'}
@@ -38,19 +42,20 @@ for i in range(i):
     try:
         
         for neiron in neironlist:
-                p = neiron.encode('utf-8').decode('unicode_escape')
+                p = re.sub(r'(\\u[a-zA-Z0-9]{4})',lambda x:x.group(1).encode("utf-8").decode("unicode-escape"),neiron)
+                
                 neironlists.append(p)
                 
         for qingqiu in qingqiulist:
-                p = qingqiu.encode('utf-8').decode('unicode_escape')
+                p = re.sub(r'(\\u[a-zA-Z0-9]{4})',lambda x:x.group(1).encode("utf-8").decode("unicode-escape"),qingqiu)
                 qingqiulists.append(p)
                 
         for location in locationlist:     
-                p = location.encode('utf-8').decode('unicode_escape')
+                p = re.sub(r'(\\u[a-zA-Z0-9]{4})',lambda x:x.group(1).encode("utf-8").decode("unicode-escape"),location)
                 locationlists.append(p)
                 
         for title in titlelist:
-                p = title.encode('utf-8').decode('unicode_escape')
+                p = re.sub(r'(\\u[a-zA-Z0-9]{4})',lambda x:x.group(1).encode("utf-8").decode("unicode-escape"),title)
                 titlelists.append(p)
                 
         time.sleep(0.5)
@@ -80,9 +85,29 @@ plt.xlabel('数量')
 plt.ylabel('投诉理由')
 plt.barh(g[0],g.index)
 plt.show()
+
+# for i, j in enumerate(g[0]):
+#     print(g.index[i], j)
+
+# exit()
+
+# 投诉理由写入csv
+with open("./投诉理由.csv", "w", encoding="utf-8", newline="") as f:
+    csv_writer = csv.writer(f)
+    csv_writer.writerow(["投诉理由","数量"])
+    
+    for i, j in enumerate(g[0]):
+        # print(g.index[i], j)
+        csv_writer.writerow([j,g.index[i]])
+
 #地址
 location = set(locationlists)
 location = list(location)
+
+# 移除空地址
+while '' in location:
+    location.remove('')
+
 while '其他' in location:
     location.remove('其他')
 time2=[]
@@ -90,11 +115,22 @@ for i in location:
     time2.append(locationlists.count(i))
 locatFrame = pd.DataFrame(location,time2)
 l = locatFrame[locatFrame.index>1]#如果太密集可以修改这个数字
+
 plt.title('地址')
 plt.xlabel('数量')
 plt.ylabel('地名')
 plt.barh(l[0],l.index)
 plt.show()
+
+# 地址写入csv
+with open("./地址.csv", "w", encoding="utf-8", newline="") as f:
+    csv_writer = csv.writer(f)
+    csv_writer.writerow(["地址","数量"])
+    
+    for i, j in enumerate(l[0]):
+        # print(j, l.index[i])
+        csv_writer.writerow([j, l.index[i]])
+
 # 分词
 def fenci(text):
  # 接收分词的字符串
@@ -125,4 +161,4 @@ wordcloud = WordCloud(
     ).generate(titletext)
 image_produce = wordcloud.to_image()
 image_produce.show()
-    #由于发现标题更适合生成词云，因此未将内容再进行词云生成，若有需要可以重复上面的过程
+#由于发现标题更适合生成词云，因此未将内容再进行词云生成，若有需要可以重复上面的过程
